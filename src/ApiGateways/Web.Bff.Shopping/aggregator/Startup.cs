@@ -22,7 +22,7 @@ public class Startup
 
         services.AddCustomMvc(Configuration)
             .AddCustomAuthentication(Configuration)
-            .AddDevspaces()
+            //.AddCustomAuthorization(Configuration)
             .AddApplicationServices()
             .AddGrpcServices();
     }
@@ -83,22 +83,20 @@ public static class ServiceCollectionExtensions
         JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Remove("sub");
 
         var identityUrl = configuration.GetValue<string>("urls:identity");
-        services.AddAuthentication(options =>
-        {
-            options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-            options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-
-        })
+        services.AddAuthentication("Bearer")
         .AddJwtBearer(options =>
         {
             options.Authority = identityUrl;
             options.RequireHttpsMetadata = false;
             options.Audience = "webshoppingagg";
+            options.TokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateAudience = false
+            };
         });
 
         return services;
     }
-
     public static IServiceCollection AddCustomMvc(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddOptions();
@@ -109,7 +107,7 @@ public static class ServiceCollectionExtensions
 
         services.AddSwaggerGen(options =>
         {
-            options.DescribeAllEnumsAsStrings();
+            //options.DescribeAllEnumsAsStrings();
 
             options.SwaggerDoc("v1", new OpenApiInfo
             {
@@ -160,8 +158,7 @@ public static class ServiceCollectionExtensions
         //register http services
 
         services.AddHttpClient<IOrderApiClient, OrderApiClient>()
-            .AddHttpMessageHandler<HttpClientAuthorizationDelegatingHandler>()
-            .AddDevspacesSupport();
+            .AddHttpMessageHandler<HttpClientAuthorizationDelegatingHandler>();
 
         return services;
     }

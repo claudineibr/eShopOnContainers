@@ -17,7 +17,6 @@ public class Startup
             .AddCustomDbContext(Configuration)
             .AddSwagger(Configuration)
             .AddCustomHealthCheck(Configuration)
-            .AddDevspaces()
             .AddHttpClientServices(Configuration)
             .AddIntegrationServices(Configuration)
             .AddEventBus(Configuration)
@@ -175,13 +174,12 @@ internal static class CustomExtensionMethods
             services.AddSingleton<IEventBus, EventBusServiceBus>(sp =>
             {
                 var serviceBusPersisterConnection = sp.GetRequiredService<IServiceBusPersisterConnection>();
-                var iLifetimeScope = sp.GetRequiredService<ILifetimeScope>();
                 var logger = sp.GetRequiredService<ILogger<EventBusServiceBus>>();
                 var eventBusSubscriptionManager = sp.GetRequiredService<IEventBusSubscriptionsManager>();
                 string subscriptionName = configuration["SubscriptionClientName"];
 
                 return new EventBusServiceBus(serviceBusPersisterConnection, logger,
-                    eventBusSubscriptionManager, iLifetimeScope, subscriptionName);
+                    eventBusSubscriptionManager, sp, subscriptionName);
             });
 
         }
@@ -191,7 +189,6 @@ internal static class CustomExtensionMethods
             {
                 var subscriptionClientName = configuration["SubscriptionClientName"];
                 var rabbitMQPersistentConnection = sp.GetRequiredService<IRabbitMQPersistentConnection>();
-                var iLifetimeScope = sp.GetRequiredService<ILifetimeScope>();
                 var logger = sp.GetRequiredService<ILogger<EventBusRabbitMQ>>();
                 var eventBusSubscriptionManager = sp.GetRequiredService<IEventBusSubscriptionsManager>();
 
@@ -201,7 +198,7 @@ internal static class CustomExtensionMethods
                     retryCount = int.Parse(configuration["EventBusRetryCount"]);
                 }
 
-                return new EventBusRabbitMQ(rabbitMQPersistentConnection, logger, iLifetimeScope, eventBusSubscriptionManager, subscriptionClientName, retryCount);
+                return new EventBusRabbitMQ(rabbitMQPersistentConnection, logger, sp, eventBusSubscriptionManager, subscriptionClientName, retryCount);
             });
         }
 
@@ -233,8 +230,7 @@ internal static class CustomExtensionMethods
         services.AddHttpClient("extendedhandlerlifetime").SetHandlerLifetime(Timeout.InfiniteTimeSpan);
         //add http client services
         services.AddHttpClient("GrantClient")
-                .SetHandlerLifetime(TimeSpan.FromMinutes(5))
-                .AddDevspacesSupport();
+                .SetHandlerLifetime(TimeSpan.FromMinutes(5));
         return services;
     }
 
@@ -303,8 +299,23 @@ internal static class CustomExtensionMethods
             options.Authority = identityUrl;
             options.RequireHttpsMetadata = false;
             options.Audience = "webhooks";
+            options.TokenValidationParameters.ValidateAudience = false;
         });
 
+        return services;
+    }
+
+
+    public static IServiceCollection AddCustomAuthorization(this IServiceCollection services, IConfiguration configuration)
+    {
+        services.AddAuthorization(options =>
+        {
+            options.AddPolicy("ApiScope", policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.RequireClaim("scope", "webhooks");
+            });
+        });
         return services;
     }
 }

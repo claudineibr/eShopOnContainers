@@ -22,7 +22,6 @@ public class Startup
 
         services.AddCustomMvc(Configuration)
                 .AddCustomAuthentication(Configuration)
-                .AddDevspaces()
                 .AddHttpServices()
                 .AddGrpcServices();
     }
@@ -86,7 +85,7 @@ public static class ServiceCollectionExtensions
 
         services.AddSwaggerGen(options =>
         {
-            options.DescribeAllEnumsAsStrings();
+            //options.DescribeAllEnumsAsStrings();
             options.SwaggerDoc("v1", new OpenApiInfo
             {
                 Title = "Shopping Aggregator for Mobile Clients",
@@ -143,8 +142,24 @@ public static class ServiceCollectionExtensions
             options.Authority = identityUrl;
             options.RequireHttpsMetadata = false;
             options.Audience = "mobileshoppingagg";
+            options.TokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateAudience = false
+            };
         });
 
+        return services;
+    }
+    public static IServiceCollection AddCustomAuthorization(this IServiceCollection services, IConfiguration configuration)
+    {
+        services.AddAuthorization(options =>
+        {
+            options.AddPolicy("ApiScope", policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.RequireClaim("scope", "mobileshoppingagg");
+            });
+        });
         return services;
     }
 
@@ -156,8 +171,7 @@ public static class ServiceCollectionExtensions
 
         //register http services
 
-        services.AddHttpClient<IOrderApiClient, OrderApiClient>()
-                .AddDevspacesSupport();
+        services.AddHttpClient<IOrderApiClient, OrderApiClient>();
 
         return services;
     }
