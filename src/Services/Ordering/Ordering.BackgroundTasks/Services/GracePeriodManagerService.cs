@@ -1,14 +1,8 @@
-﻿using Dapper;
+﻿using System.Data.SqlClient;
+using Dapper;
 using Microsoft.eShopOnContainers.BuildingBlocks.EventBus.Abstractions;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Ordering.BackgroundTasks.Events;
-using System;
-using System.Collections.Generic;
-using System.Data.SqlClient;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace Ordering.BackgroundTasks.Services
 {
@@ -36,12 +30,7 @@ namespace Ordering.BackgroundTasks.Services
                 _logger.LogDebug("GracePeriodManagerService background task is doing background work.");
 
                 CheckConfirmedGracePeriodOrders();
-                try {
-                    await Task.Delay(_settings.CheckUpdateTime, stoppingToken);
-                }
-                catch (TaskCanceledException exception) {
-                    _logger.LogCritical(exception, "TaskCanceledException Error", exception.Message);
-                }
+                await Task.Delay(_settings.CheckUpdateTime, stoppingToken);
             }
 
             _logger.LogDebug("GracePeriodManagerService background task is stopping.");
@@ -57,7 +46,7 @@ namespace Ordering.BackgroundTasks.Services
             {
                 var confirmGracePeriodEvent = new GracePeriodConfirmedIntegrationEvent(orderId);
 
-                _logger.LogInformation("----- Publishing integration event: {IntegrationEventId} from {AppName} - ({@IntegrationEvent})", confirmGracePeriodEvent.Id, Program.AppName, confirmGracePeriodEvent);
+                _logger.LogInformation("Publishing integration event: {IntegrationEventId} - ({@IntegrationEvent})", confirmGracePeriodEvent.Id, confirmGracePeriodEvent);
 
                 _eventBus.Publish(confirmGracePeriodEvent);
             }
@@ -79,7 +68,7 @@ namespace Ordering.BackgroundTasks.Services
             }
             catch (SqlException exception)
             {
-                _logger.LogCritical(exception, "FATAL ERROR: Database connections could not be opened: {Message}", exception.Message);
+                _logger.LogCritical(exception, "Fatal error establishing database connection");
             }
 
 

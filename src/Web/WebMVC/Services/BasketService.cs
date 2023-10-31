@@ -29,10 +29,7 @@ public class BasketService : IBasketService
         var responseString = await response.Content.ReadAsStringAsync();
         return string.IsNullOrEmpty(responseString) ?
             new Basket() { BuyerId = user.Id } :
-            JsonSerializer.Deserialize<Basket>(responseString, new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true
-            });
+            JsonSerializer.Deserialize<Basket>(responseString, JsonDefaults.CaseInsensitiveOptions);
     }
 
     public async Task<Basket> UpdateBasket(Basket basket)
@@ -52,8 +49,8 @@ public class BasketService : IBasketService
     {
         var uri = API.Basket.CheckoutBasket(_basketByPassUrl);
         var basketContent = new StringContent(JsonSerializer.Serialize(basket), Encoding.UTF8, "application/json");
-            
-        _logger.LogInformation("Uri chechout {uri}", uri);
+
+        _logger.LogInformation("Uri checkout {uri}", uri);
 
         var response = await _apiClient.PostAsync(uri, basketContent);
 
@@ -82,10 +79,7 @@ public class BasketService : IBasketService
 
         var jsonResponse = await response.Content.ReadAsStringAsync();
 
-        return JsonSerializer.Deserialize<Basket>(jsonResponse, new JsonSerializerOptions
-        {
-            PropertyNameCaseInsensitive = true
-        });
+        return JsonSerializer.Deserialize<Basket>(jsonResponse, JsonDefaults.CaseInsensitiveOptions);
     }
 
     public async Task<Order> GetOrderDraft(string basketId)
@@ -94,10 +88,7 @@ public class BasketService : IBasketService
 
         var responseString = await _apiClient.GetStringAsync(uri);
 
-        var response = JsonSerializer.Deserialize<Order>(responseString, new JsonSerializerOptions
-        {
-            PropertyNameCaseInsensitive = true
-        });
+        var response = JsonSerializer.Deserialize<Order>(responseString, JsonDefaults.CaseInsensitiveOptions);
 
         return response;
     }
